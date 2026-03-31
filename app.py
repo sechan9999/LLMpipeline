@@ -51,7 +51,9 @@ try:
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_openai import OpenAIEmbeddings, ChatOpenAI
     from langchain_core.vectorstores import InMemoryVectorStore
-    from langchain.chains import RetrievalQA
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.runnables import RunnablePassthrough
     RAG_AVAILABLE = True
 except Exception as e:
     RAG_AVAILABLE = False
@@ -380,31 +382,44 @@ with tab2:
                     loader = PyPDFLoader(tmp_path)
                     docs   = loader.load()
 
-                    # 2. Chunk (1000자, 100자 overlap)
+                    # 2. Chunk
                     splitter = RecursiveCharacterTextSplitter(
                         chunk_size=1000, chunk_overlap=100
                     )
                     chunks = splitter.split_documents(docs)
 
-                    # 3. Embed → InMemoryVectorStore (no SQLite needed)
-                    embeddings = OpenAIEmbeddings(api_key=_api_key)
+                    # 3. Embed → InMemoryVectorStore
+                    embeddings  = OpenAIEmbeddings(api_key=_api_key)
                     vectorstore = InMemoryVectorStore(embedding=embeddings)
                     vectorstore.add_documents(chunks)
+                    retriever   = vectorstore.as_retriever(search_kwargs={"k": 4})
 
-                    # 4. QA Chain
-                    llm = ChatOpenAI(
-                        model="gpt-4-turbo",
-                        temperature=0,
-                        api_key=_api_key
-                    )
-                    return RetrievalQA.from_chain_type(
-                        llm=llm,
-                        chain_type="stuff",
-                        retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
-                        return_source_documents=True
+                    # 4. LCEL Chain (modern langchain 0.3.x pattern)
+                    llm = ChatOpenAI(model="gpt-4-turbo", temperature=0, api_key=_api_key)
+
+                    prompt = ChatPromptTemplate.from_template("""
+다음 문맥을 바탕으로 질문에 한국어로 답변해주세요.
+
+문맥:
+{context}
+
+질뉔: {question}
+답변:"""
                     )
 
-                qa_chain = build_rag(uploaded_file.read(), uploaded_file.name, api_key)
+                    def format_docs(docs):
+                        return "\n\n".join(d.page_content for d in docs)
+
+                    chain = (
+                        {"context": retriever | format_docs,
+                         "question": RunnablePassthrough()}
+                        | prompt
+                        | llm
+                        | StrOutputParser()
+                    )
+                    return chain, retriever
+
+                qa_chain, retriever = build_rag(uploaded_file.read(), uploaded_file.name, api_key)
                 st.success(f"✅ **{uploaded_file.name}** 인덱싱 완료! 질문을 입력하세요.")
 
                 # ── Q&A Interface ──
@@ -416,11 +431,12 @@ with tab2:
 
                 if question:
                     with st.spinner("🔍 답변 생성 중..."):
-                        result = qa_chain.invoke({"query": question})
-                    st.markdown(f'<div class="status-card"><b>📝 답변</b><br><br>{result["result"]}</div>', unsafe_allow_html=True)
+                        answer = qa_chain.invoke(question)
+                        source_docs = retriever.invoke(question)
+                    st.markdown(f'<div class="status-card"><b>📝 답변</b><br><br>{answer}</div>', unsafe_allow_html=True)
 
                     with st.expander("📎 참조된 문서 청크 보기"):
-                        for i, doc in enumerate(result.get("source_documents", []), 1):
+                        for i, doc in enumerate(source_docs, 1):
                             st.markdown(f"**청크 {i}** (p.{doc.metadata.get('page', '?')+1})")
                             st.text(doc.page_content[:400] + "...")
 
