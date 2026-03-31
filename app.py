@@ -368,7 +368,7 @@ with tab2:
                 os.environ["OPENAI_API_KEY"] = api_key
 
                 @st.cache_resource(show_spinner="📚 문서 인덱싱 중...")
-                def build_rag(file_bytes, file_name):
+                def build_rag(file_bytes, file_name, _api_key):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                         tmp.write(file_bytes)
                         tmp_path = tmp.name
@@ -383,12 +383,17 @@ with tab2:
                     )
                     chunks = splitter.split_documents(docs)
 
-                    # 3. Embed → ChromaDB (in-memory for cloud)
-                    embeddings = OpenAIEmbeddings()
+                    # 3. Embed → ChromaDB (in-memory)
+                    # Pass api_key directly — avoids pydantic v1 ValidationError
+                    embeddings = OpenAIEmbeddings(openai_api_key=_api_key)
                     vectordb   = Chroma.from_documents(chunks, embeddings)
 
                     # 4. QA Chain
-                    llm = ChatOpenAI(model_name="gpt-4-turbo", temperature=0)
+                    llm = ChatOpenAI(
+                        model_name="gpt-4-turbo",
+                        temperature=0,
+                        openai_api_key=_api_key
+                    )
                     return RetrievalQA.from_chain_type(
                         llm=llm,
                         chain_type="stuff",
@@ -396,7 +401,7 @@ with tab2:
                         return_source_documents=True
                     )
 
-                qa_chain = build_rag(uploaded_file.read(), uploaded_file.name)
+                qa_chain = build_rag(uploaded_file.read(), uploaded_file.name, api_key)
                 st.success(f"✅ **{uploaded_file.name}** 인덱싱 완료! 질문을 입력하세요.")
 
                 # ── Q&A Interface ──
