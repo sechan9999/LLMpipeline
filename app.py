@@ -199,6 +199,31 @@ h2, h3 { color: #c4b5fd !important; }
     backdrop-filter: blur(8px);
 }
 
+/* ── Answer card (vivid violet) ── */
+.answer-card {
+    padding: 22px 26px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(46,16,101,0.85), rgba(91,33,182,0.6));
+    border: 1.5px solid #a78bfa;
+    margin-bottom: 16px;
+    box-shadow: 0 0 28px rgba(167,139,250,0.25);
+    backdrop-filter: blur(12px);
+}
+.answer-card .answer-label {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #a78bfa;
+    margin-bottom: 12px;
+}
+.answer-card .answer-text {
+    font-size: 15px;
+    line-height: 1.75;
+    color: #f5f0ff;
+    white-space: pre-wrap;
+}
+
 /* ── Bi-LSTM Flow nodes (blue-indigo) ── */
 .flow-container { display:flex; flex-direction:column; align-items:center; gap:0; margin-top:12px; }
 .flow-node {
@@ -446,14 +471,39 @@ with tab2:
 
                 if question:
                     with st.spinner("🔍 답변 생성 중..."):
-                        answer = qa_chain.invoke(question)
-                        source_docs = retriever.invoke(question)
-                    st.markdown(f'<div class="status-card"><b>📝 답변</b><br><br>{answer}</div>', unsafe_allow_html=True)
+                        st.session_state["rag_answer"] = qa_chain.invoke(question)
+                        st.session_state["rag_docs"]   = retriever.invoke(question)
 
-                    with st.expander("📎 참조된 문서 청크 보기"):
-                        for i, doc in enumerate(source_docs, 1):
-                            st.markdown(f"**청크 {i}** (p.{doc.metadata.get('page', '?')+1})")
-                            st.text(doc.page_content[:400] + "...")
+                if st.session_state.get("rag_answer"):
+                    answer      = st.session_state["rag_answer"]
+                    source_docs = st.session_state.get("rag_docs", [])
+
+                    # ── Vivid violet answer card ──
+                    st.markdown(f"""
+                    <div class="answer-card">
+                        <div class="answer-label">📝 답변</div>
+                        <div class="answer-text">{answer}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    # ── Source chunks (now works because data is in session_state) ──
+                    with st.expander(f"📎 참조된 문서 청크 보기 ({len(source_docs)}개)"):
+                        if source_docs:
+                            for i, doc in enumerate(source_docs, 1):
+                                page = doc.metadata.get('page', None)
+                                page_str = f"p.{page+1}" if page is not None else "페이지 미확인"
+                                st.markdown(f"""
+                                <div style="background:rgba(15,10,40,0.8);border:1px solid #4c3a8a;
+                                border-radius:8px;padding:14px 18px;margin-bottom:10px;">
+                                    <span style="color:#a78bfa;font-weight:700;font-size:13px;">
+                                        청크 {i} &nbsp;&middot;&nbsp; {page_str}
+                                    </span>
+                                    <pre style="color:#e2d9f3;font-size:12px;margin-top:8px;
+                                    white-space:pre-wrap;font-family:'Inter',sans-serif;">{doc.page_content[:500]}</pre>
+                                </div>
+                                """, unsafe_allow_html=True)
+                        else:
+                            st.info("참조 청크를 찾지 못했습니다.")
 
         elif not api_key:
             st.info("🔑 OpenAI API 키를 입력하면 RAG 시스템이 활성화됩니다.")
