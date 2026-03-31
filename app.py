@@ -340,8 +340,8 @@ def train_step(model, x, y, ...):
 # ══════════════════════════════════════════════════════════════════════
 with tab2:
     st.markdown("""
-    기업 내부 문서(PDF)를 **LangChain + ChromaDB**로 인덱싱하고,
-    **GPT-4 Turbo**가 문서 내용을 근거로 질문에 답변하는 RAG 시스템입니다.
+    기업 내부 문서(PDF)를 **LangChain + InMemoryVectorStore**로 인덱싱하고,
+    **OpenAI LLM**이 문서 내용을 근거로 질문에 답변하는 RAG 시스템입니다.
     """)
 
     col_rag1, col_rag2 = st.columns([2, 1])
@@ -354,6 +354,19 @@ with tab2:
             type="password",
             placeholder="sk-...",
             help="키는 서버 메모리에만 존재하며 저장되지 않습니다."
+        )
+
+        # ── Model Selector ──
+        model_choice = st.selectbox(
+            "🧠 LLM 모델 선택",
+            [
+                "gpt-4o-mini",       # 가장 널리 접근 가능, 빠르고 저렴한
+                "gpt-4o",            # 성능 최우선
+                "gpt-3.5-turbo",     # 무료 플랜 타입트와 호환
+                "gpt-4-turbo",       # GPT-4 Turbo (Tier 1+)
+                "gpt-4",             # GPT-4 (Tier 1+)
+            ],
+            help="API 키 플랜에 따라 접근 가능한 모델이 다릅니다. 접근 오류 시 더 낙은 버전을 선택하세요."
         )
 
         # ── PDF Upload ──
@@ -373,7 +386,7 @@ with tab2:
                 os.environ["OPENAI_API_KEY"] = api_key
 
                 @st.cache_resource(show_spinner="📚 문서 인덱싱 중...")
-                def build_rag(file_bytes, file_name, _api_key):
+                def build_rag(file_bytes, file_name, _api_key, _model):
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                         tmp.write(file_bytes)
                         tmp_path = tmp.name
@@ -394,8 +407,8 @@ with tab2:
                     vectorstore.add_documents(chunks)
                     retriever   = vectorstore.as_retriever(search_kwargs={"k": 4})
 
-                    # 4. LCEL Chain (modern langchain 0.3.x pattern)
-                    llm = ChatOpenAI(model="gpt-4-turbo", temperature=0, api_key=_api_key)
+                    # 4. LCEL Chain
+                    llm = ChatOpenAI(model=_model, temperature=0, api_key=_api_key)
 
                     prompt = ChatPromptTemplate.from_template("""
 다음 문맥을 바탕으로 질문에 한국어로 답변해주세요.
@@ -403,7 +416,7 @@ with tab2:
 문맥:
 {context}
 
-질뉔: {question}
+질문: {question}
 답변:"""
                     )
 
@@ -419,8 +432,10 @@ with tab2:
                     )
                     return chain, retriever
 
-                qa_chain, retriever = build_rag(uploaded_file.read(), uploaded_file.name, api_key)
-                st.success(f"✅ **{uploaded_file.name}** 인덱싱 완료! 질문을 입력하세요.")
+                qa_chain, retriever = build_rag(
+                    uploaded_file.read(), uploaded_file.name, api_key, model_choice
+                )
+                st.success(f"✅ **{uploaded_file.name}** 인덱싱 완료! (`{model_choice}` 사용중) 질문을 입력하세요.")
 
                 # ── Q&A Interface ──
                 st.subheader("💬 문서 기반 질문 답변")
