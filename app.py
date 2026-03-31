@@ -384,15 +384,15 @@ with tab2:
                     chunks = splitter.split_documents(docs)
 
                     # 3. Embed → ChromaDB (in-memory)
-                    # Pass api_key directly — avoids pydantic v1 ValidationError
-                    embeddings = OpenAIEmbeddings(openai_api_key=_api_key)
+                    # api_key param = langchain-openai 0.2.x / pydantic v2 syntax
+                    embeddings = OpenAIEmbeddings(api_key=_api_key)
                     vectordb   = Chroma.from_documents(chunks, embeddings)
 
                     # 4. QA Chain
                     llm = ChatOpenAI(
                         model_name="gpt-4-turbo",
                         temperature=0,
-                        openai_api_key=_api_key
+                        api_key=_api_key
                     )
                     return RetrievalQA.from_chain_type(
                         llm=llm,
