@@ -44,16 +44,18 @@ else:
     optimizer = loss_fn = metric = mock_obj
     def train_step(*a): return mock_obj
 
-# ── LangChain / ChromaDB (graceful degradation) ────────────────────────────
+# ── LangChain / Vector Store (graceful degradation) ────────────────────────────
+RAG_ERROR = None
 try:
     from langchain_community.document_loaders import PyPDFLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-    from langchain_community.vectorstores import Chroma
+    from langchain_core.vectorstores import InMemoryVectorStore
     from langchain.chains import RetrievalQA
     RAG_AVAILABLE = True
-except ImportError:
+except Exception as e:
     RAG_AVAILABLE = False
+    RAG_ERROR = str(e)
 
 # ── Page config ────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -363,7 +365,8 @@ with tab2:
         # ── Build RAG ──
         if uploaded_file and api_key:
             if not RAG_AVAILABLE:
-                st.error("langchain 패키지가 설치되지 않았습니다. requirements.txt를 확인하세요.")
+                st.error(f"❌ RAG 패키지 로드 실패: `{RAG_ERROR}`")
+                st.info("❗ Streamlit Cloud 로그를 확인하려면 우측 하단 'Manage app' 을 클릭하세요.")
             else:
                 os.environ["OPENAI_API_KEY"] = api_key
 
@@ -383,21 +386,21 @@ with tab2:
                     )
                     chunks = splitter.split_documents(docs)
 
-                    # 3. Embed → ChromaDB (in-memory)
-                    # api_key param = langchain-openai 0.2.x / pydantic v2 syntax
+                    # 3. Embed → InMemoryVectorStore (no SQLite needed)
                     embeddings = OpenAIEmbeddings(api_key=_api_key)
-                    vectordb   = Chroma.from_documents(chunks, embeddings)
+                    vectorstore = InMemoryVectorStore(embedding=embeddings)
+                    vectorstore.add_documents(chunks)
 
                     # 4. QA Chain
                     llm = ChatOpenAI(
-                        model_name="gpt-4-turbo",
+                        model="gpt-4-turbo",
                         temperature=0,
                         api_key=_api_key
                     )
                     return RetrievalQA.from_chain_type(
                         llm=llm,
                         chain_type="stuff",
-                        retriever=vectordb.as_retriever(search_kwargs={"k": 4}),
+                        retriever=vectorstore.as_retriever(search_kwargs={"k": 4}),
                         return_source_documents=True
                     )
 

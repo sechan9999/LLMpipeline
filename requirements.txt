@@ -2,7 +2,7 @@
 streamlit>=1.30.0
 numpy>=1.24.0
 
-# LangChain 0.3.x — fully pydantic v2 compatible (fixes ValidationError)
+# LangChain 0.3.x — fully pydantic v2 compatible
 langchain>=0.3.0
 langchain-core>=0.3.0
 langchain-community>=0.3.0
@@ -12,9 +12,6 @@ langchain-text-splitters>=0.3.0
 # LLM & Embeddings
 openai>=1.50.0
 tiktoken>=0.7.0
-
-# Vector DB
-chromadb>=0.5.0
 
 # Document loading
 pypdf>=4.0.0
