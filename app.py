@@ -64,27 +64,168 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] { background: #0e1117; }
-[data-testid="stSidebar"] { background: #161b22; }
-.status-card {
-    padding: 18px 22px; border-radius: 10px;
-    background: #1e2530; border: 1px solid #3d4b5f; margin-bottom: 16px;
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+* { font-family: 'Inter', sans-serif; }
+
+/* ── Background ── */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #06070f 0%, #0d0e20 50%, #0f0a1e 100%);
+    min-height: 100vh;
 }
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #0d0f23 0%, #110d22 100%);
+    border-right: 1px solid #2d2060;
+}
+
+/* ── Tab styling ── */
+[data-testid="stTabs"] [role="tab"] {
+    color: #9d8fd4;
+    font-weight: 600;
+    font-size: 15px;
+    border-radius: 8px 8px 0 0;
+    padding: 10px 24px;
+    transition: all 0.2s;
+}
+[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
+    color: #c4b5fd;
+    border-bottom: 3px solid #7c3aed;
+    background: rgba(124, 58, 237, 0.08);
+}
+[data-testid="stTabs"] [role="tab"]:hover { color: #c4b5fd; }
+
+/* ── Main title ── */
+h1 { 
+    background: linear-gradient(90deg, #818cf8, #a78bfa, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700 !important;
+    font-size: 2.4rem !important;
+}
+h2, h3 { color: #c4b5fd !important; }
+
+/* ── Progress bar ── */
+[data-testid="stProgress"] > div > div > div > div {
+    background: linear-gradient(90deg, #6d28d9, #7c3aed, #8b5cf6);
+    border-radius: 999px;
+}
+[data-testid="stProgress"] > div > div {
+    background: rgba(109, 40, 217, 0.2);
+    border-radius: 999px;
+}
+
+/* ── Buttons ── */
+[data-testid="stButton"] > button {
+    background: linear-gradient(135deg, #4c1d95, #6d28d9, #7c3aed) !important;
+    color: #f5f3ff !important;
+    border: 1px solid #8b5cf6 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 10px 24px !important;
+    box-shadow: 0 0 16px rgba(124,58,237,0.35) !important;
+    transition: all 0.2s !important;
+}
+[data-testid="stButton"] > button:hover {
+    box-shadow: 0 0 28px rgba(139,92,246,0.6) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── Inputs ── */
+[data-testid="stTextInput"] input, 
+[data-testid="stNumberInput"] input {
+    background: rgba(30, 20, 60, 0.7) !important;
+    border: 1px solid #4c3a8a !important;
+    color: #e2d9f3 !important;
+    border-radius: 8px !important;
+}
+[data-testid="stTextInput"] input:focus,
+[data-testid="stNumberInput"] input:focus {
+    border-color: #7c3aed !important;
+    box-shadow: 0 0 0 2px rgba(124,58,237,0.3) !important;
+}
+
+/* ── Slider ── */
+[data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"] {
+    background: #7c3aed !important;
+    box-shadow: 0 0 10px rgba(124,58,237,0.5) !important;
+}
+[data-testid="stSlider"] [class*="StyledThumb"] { background: #7c3aed !important; }
+
+/* ── Info / success boxes ── */
+[data-testid="stInfo"] {
+    background: rgba(67, 56, 202, 0.15) !important;
+    border: 1px solid #4338ca !important;
+    border-radius: 10px !important;
+    color: #c7d2fe !important;
+}
+[data-testid="stSuccess"] {
+    background: rgba(109, 40, 217, 0.15) !important;
+    border: 1px solid #7c3aed !important;
+    border-radius: 10px !important;
+    color: #ddd6fe !important;
+}
+
+/* ── Code blocks ── */
+[data-testid="stCode"] > div {
+    background: rgba(15, 10, 40, 0.9) !important;
+    border: 1px solid #2d2060 !important;
+    border-radius: 10px !important;
+}
+
+/* ── File uploader ── */
+[data-testid="stFileUploader"] > section {
+    background: rgba(30, 20, 60, 0.5) !important;
+    border: 2px dashed #6d28d9 !important;
+    border-radius: 12px !important;
+    color: #c4b5fd !important;
+}
+
+/* ── Sidebar widgets ── */
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stMarkdown { color: #a78bfa !important; }
+
+/* ── Status card ── */
+.status-card {
+    padding: 18px 22px;
+    border-radius: 12px;
+    background: rgba(30, 20, 60, 0.7);
+    border: 1px solid #5b21b6;
+    margin-bottom: 16px;
+    box-shadow: 0 0 20px rgba(124,58,237,0.15);
+    backdrop-filter: blur(8px);
+}
+
+/* ── Bi-LSTM Flow nodes (blue-indigo) ── */
 .flow-container { display:flex; flex-direction:column; align-items:center; gap:0; margin-top:12px; }
 .flow-node {
-    background: linear-gradient(135deg,#1e3a5f,#2563a8);
-    color:#e8f4ff; border:1px solid #4e90d6; border-radius:8px;
-    padding:8px 20px; font-size:13px; font-weight:600;
-    width:210px; text-align:center; box-shadow:0 2px 8px rgba(37,99,168,.3);
+    background: linear-gradient(135deg, #1e1b4b, #3730a3);
+    color: #e0e7ff;
+    border: 1px solid #6366f1;
+    border-radius: 9px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    width: 215px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.3);
+    transition: box-shadow 0.2s;
 }
-.flow-arrow { color:#4e90d6; font-size:20px; line-height:1; margin:2px 0; }
+.flow-arrow { color: #818cf8; font-size: 20px; line-height: 1; margin: 2px 0; }
+
+/* ── RAG Flow nodes (purple-violet) ── */
 .rag-node {
-    background: linear-gradient(135deg,#1a3a2a,#1f6b45);
-    color:#d4f5e2; border:1px solid #2ecc71; border-radius:8px;
-    padding:8px 20px; font-size:13px; font-weight:600;
-    width:230px; text-align:center; box-shadow:0 2px 8px rgba(46,204,113,.2);
+    background: linear-gradient(135deg, #2e1065, #5b21b6);
+    color: #ede9fe;
+    border: 1px solid #8b5cf6;
+    border-radius: 9px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    width: 230px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(139,92,246,0.3);
 }
-.rag-arrow { color:#2ecc71; font-size:20px; line-height:1; margin:2px 0; }
+.rag-arrow { color: #a78bfa; font-size: 20px; line-height: 1; margin: 2px 0; }
 </style>
 """, unsafe_allow_html=True)
 
